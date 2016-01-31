@@ -30,3 +30,9 @@ func TestMaxStackDepth(t *testing.T) {
 	assert.Equal(t, "err.Stacks[1]", err.Stacks[1], "...")
 	assert.Equal(t, "lines of err.Error()", len(strings.Split(err.Error(), "\n")), 3)
 }
+
+func TestCause(t *testing.T) {
+	cause := fmt.Errorf("myerror")
+	assert.Equal(t, "Cause(cause)", Cause(cause), cause)
+	assert.Equal(t, "Cause(WithStacks(cause))", Cause(WithStacks(cause)), cause)
+}

@@ -29,6 +29,17 @@ func (e *ErrorWithStacks) Error() string {
 	return msg
 }
 
+// Returns the root cause of the error. Will not return a *ErrorWithStacks.
+func Cause(err error) error {
+	for {
+		ews, ok := err.(*ErrorWithStacks)
+		if !ok {
+			return err
+		}
+		err = ews.Err
+	}
+}
+
 // WithStacks returns a *ErrorWithStacks error with stacks set.
 // If err has been a *ErrorWithStacks, it is directly returned.
 // If err is nil, a nil is returned.
