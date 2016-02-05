@@ -9,7 +9,7 @@ import (
 var (
 	// The maximum depth in ErrorWithStacks.Stacks.
 	// The last line is set to "..." if some call stacks are ignored.
-	MaxStackDepth int = 10
+	MaxStackDepth int = 20
 )
 
 // ErrorWithStacks is a struct containing the original error and the call stacks.
@@ -56,15 +56,16 @@ func WithStacks(err error) error {
 		Err: err,
 	}
 	for i := 0; i <= MaxStackDepth; i++ {
-		_, file, line, ok := runtime.Caller(i + 1)
+		pc, file, line, ok := runtime.Caller(i + 1)
 		if !ok {
 			break
 		}
+		fn := runtime.FuncForPC(pc)
 
 		if i >= MaxStackDepth {
 			e.Stacks = append(e.Stacks, "...")
 		} else {
-			e.Stacks = append(e.Stacks, fmt.Sprintf("%s:%d", path.Base(file), line))
+			e.Stacks = append(e.Stacks, fmt.Sprintf("%s(%s:%d)", fn.Name(), path.Base(file), line))
 		}
 	}
 	return e
