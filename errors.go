@@ -2,6 +2,7 @@ package errorsp
 
 import (
 	"fmt"
+	"math"
 	"path"
 	"runtime"
 )
@@ -9,7 +10,8 @@ import (
 var (
 	// The maximum depth in ErrorWithStacks.Stacks.
 	// The last line is set to "..." if some call stacks are ignored.
-	MaxStackDepth int = 20
+	// Only set this if some very deep callstack can happen, e.g. deep recursive calling.
+	MaxStackDepth int = math.MaxInt32
 )
 
 // ErrorWithStacks is a struct containing the original error and the call stacks.
@@ -40,6 +42,24 @@ func Cause(err error) error {
 	}
 }
 
+func stacks(skip int) []string {
+	var stacks []string
+	for i := 0; i <= MaxStackDepth; i++ {
+		pc, file, line, ok := runtime.Caller(i + skip)
+		if !ok {
+			break
+		}
+		fn := runtime.FuncForPC(pc)
+
+		if i >= MaxStackDepth {
+			stacks = append(stacks, "...")
+		} else {
+			stacks = append(stacks, fmt.Sprintf("%s(%s:%d)", fn.Name(), path.Base(file), line))
+		}
+	}
+	return stacks
+}
+
 // WithStacks returns a *ErrorWithStacks error with stacks set.
 // If err has been a *ErrorWithStacks, it is directly returned.
 // If err is nil, a nil is returned.
@@ -49,24 +69,29 @@ func WithStacks(err error) error {
 		return nil
 	}
 	if _, ok := err.(*ErrorWithStacks); ok {
-		// If err has been a ErrorWithStacks, no need to wrap it.
+		// If err has been an ErrorWithStacks, no need to wrap it.
 		return err
 	}
-	e := &ErrorWithStacks{
-		Err: err,
+	return &ErrorWithStacks{
+		Err:    err,
+		Stacks: stacks(2),
 	}
-	for i := 0; i <= MaxStackDepth; i++ {
-		pc, file, line, ok := runtime.Caller(i + 1)
-		if !ok {
-			break
-		}
-		fn := runtime.FuncForPC(pc)
+}
 
-		if i >= MaxStackDepth {
-			e.Stacks = append(e.Stacks, "...")
-		} else {
-			e.Stacks = append(e.Stacks, fmt.Sprintf("%s(%s:%d)", fn.Name(), path.Base(file), line))
+func WithStacksAndMessage(err error, format string, args ...interface{}) error {
+	if err == nil {
+		// Remain no-error.
+		return nil
+	}
+	s := stacks(2)
+	ews, ok := err.(*ErrorWithStacks)
+	if !ok || len(ews.Stacks) < len(s) {
+		s[0] += ": " + fmt.Sprintf(format, args...)
+		return &ErrorWithStacks{
+			Err:    err,
+			Stacks: s,
 		}
 	}
-	return e
+	ews.Stacks[len(ews.Stacks)-len(s)] = ": " + fmt.Sprintf(format, args...)
+	return ews
 }
