@@ -60,9 +60,17 @@ func stacks(skip int) []string {
 	return stacks
 }
 
+// WithStacks returns a *ErrorWithStacks error with the message and stacks set.
+func NewWithStacks(format string, a ...interface{}) error {
+	return &ErrorWithStacks{
+		Err:    fmt.Errorf(format, a...),
+		Stacks: stacks(2),
+	}
+}
+
 // WithStacks returns a *ErrorWithStacks error with stacks set.
-// If err has been a *ErrorWithStacks, it is directly returned.
 // If err is nil, a nil is returned.
+// If err has been a *ErrorWithStacks, it is directly returned.
 func WithStacks(err error) error {
 	if err == nil {
 		// Remain no-error.
@@ -78,6 +86,9 @@ func WithStacks(err error) error {
 	}
 }
 
+// WithStacksAndMessage returns a *ErrorWithStacks error with stacks and message set.
+// If err is nil, a nil is returned.
+// If err has been a *ErrorWithStacks, the corresponding call stack line is appended with the message.
 func WithStacksAndMessage(err error, format string, args ...interface{}) error {
 	if err == nil {
 		// Remain no-error.
@@ -92,6 +103,6 @@ func WithStacksAndMessage(err error, format string, args ...interface{}) error {
 			Stacks: s,
 		}
 	}
-	ews.Stacks[len(ews.Stacks)-len(s)] = ": " + fmt.Sprintf(format, args...)
+	ews.Stacks[len(ews.Stacks)-len(s)] += ": " + fmt.Sprintf(format, args...)
 	return ews
 }

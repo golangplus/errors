@@ -9,7 +9,7 @@ import (
 )
 
 func TestWithStacks_NoError(t *testing.T) {
-	assert.Equal(t, "WithStacks", WithStacks(nil), nil)
+	assert.Equal(t, "WithStacks(nil)", WithStacks(nil), nil)
 }
 
 func TestWithStacks(t *testing.T) {
@@ -35,4 +35,26 @@ func TestCause(t *testing.T) {
 	cause := fmt.Errorf("myerror")
 	assert.Equal(t, "Cause(cause)", Cause(cause), cause)
 	assert.Equal(t, "Cause(WithStacks(cause))", Cause(WithStacks(cause)), cause)
+}
+
+func TestNewWithStacks(t *testing.T) {
+	err := NewWithStacks("%s:%d", "a", 123).(*ErrorWithStacks)
+	assert.Equal(t, "err.Err.Error()", err.Err.Error(), "a:123")
+}
+
+func TestWithStacksAndMessage_NoError(t *testing.T) {
+	assert.Equal(t, "WithStacksAndMessage(nil)", WithStacksAndMessage(nil, ""), nil)
+}
+
+func TestWithStacksAndMessage(t *testing.T) {
+	origin := fmt.Errorf("origin")
+	wrapped, isErrWithStacks := WithStacksAndMessage(origin, "%s:%d", "a", 123).(*ErrorWithStacks)
+	assert.True(t, "isErrWithStacks", isErrWithStacks)
+	assert.Equal(t, "wrapped.Err", wrapped.Err, origin)
+	assert.ValueShould(t, "wrapped.Stacks[0]", wrapped.Stacks[0], strings.HasSuffix(wrapped.Stacks[0], ": a:123"), "does not contain message correctly")
+
+	wrapped2, isErrWithStacks := WithStacksAndMessage(wrapped, "%s:%d", "b", 456).(*ErrorWithStacks)
+	assert.True(t, "isErrWithStacks", isErrWithStacks)
+	assert.Equal(t, "wrapped.Err", wrapped2.Err, origin)
+	assert.ValueShould(t, "wrapped2.Stacks[0]", wrapped2.Stacks[0], strings.HasSuffix(wrapped2.Stacks[0], ": a:123: b:456"), "does not contain message correctly")
 }
