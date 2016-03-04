@@ -58,3 +58,8 @@ func TestWithStacksAndMessage(t *testing.T) {
 	assert.Equal(t, "wrapped.Err", wrapped2.Err, origin)
 	assert.ValueShould(t, "wrapped2.Stacks[0]", wrapped2.Stacks[0], strings.HasSuffix(wrapped2.Stacks[0], ": a:123: b:456"), "does not contain message correctly")
 }
+
+func TestErrorPrintf(t *testing.T) {
+	assert.Equal(t, "errorPrintf", errorPrintf("abc: %s", "a\nb"), `abc: a
+  b`)
+}

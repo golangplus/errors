@@ -1,10 +1,12 @@
 package errorsp
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"path"
 	"runtime"
+	"strings"
 )
 
 var (
@@ -60,10 +62,20 @@ func stacks(skip int) []string {
 	return stacks
 }
 
+// errorPrintf format the string and indent all lines except the first line.
+func errorPrintf(format string, a ...interface{}) string {
+	s := fmt.Sprintf(format, a...)
+	lines := strings.Split(s, "\n")
+	for i := 1; i < len(lines); i++ {
+		lines[i] = "  " + lines[i]
+	}
+	return strings.Join(lines, "\n")
+}
+
 // WithStacks returns a *ErrorWithStacks error with the message and stacks set.
 func NewWithStacks(format string, a ...interface{}) error {
 	return &ErrorWithStacks{
-		Err:    fmt.Errorf(format, a...),
+		Err:    errors.New(errorPrintf(format, a...)),
 		Stacks: stacks(2),
 	}
 }
@@ -97,7 +109,7 @@ func WithStacksAndMessage(err error, format string, args ...interface{}) error {
 	s := stacks(2)
 	ews, ok := err.(*ErrorWithStacks)
 	if !ok || len(ews.Stacks) < len(s) {
-		s[0] += ": " + fmt.Sprintf(format, args...)
+		s[0] += ": " + errorPrintf(format, args...)
 		return &ErrorWithStacks{
 			Err:    err,
 			Stacks: s,
